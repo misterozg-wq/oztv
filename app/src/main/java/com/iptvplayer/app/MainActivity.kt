@@ -68,16 +68,24 @@ class MainActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
         })
 
+        // Recherche masquée par défaut : la loupe l'affiche/masque pour libérer de la place
+        findViewById<ImageButton>(R.id.btnSearch).setOnClickListener {
+            if (search.visibility == View.VISIBLE) {
+                search.setText("")
+                search.visibility = View.GONE
+            } else {
+                search.visibility = View.VISIBLE
+                search.requestFocus()
+            }
+        }
+
         switchTab(Kind.LIVE)
     }
 
+    /** Nombre de colonnes calculé d'après la largeur réelle (plus de chaînes en paysage). */
     private fun spanForScreen(): Int {
         val dp = resources.configuration.screenWidthDp
-        return when {
-            dp >= 900 -> 6   // TV / tablette
-            dp >= 600 -> 4
-            else -> 3        // téléphone
-        }
+        return (dp / 105).coerceIn(3, 8)
     }
 
     private fun switchTab(kind: Kind) {
