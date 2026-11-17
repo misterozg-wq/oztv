@@ -9,7 +9,91 @@
         android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:use_controller="true"
+        app:use_controller="false"
         app:resize_mode="fit"
         app:show_buffering="when_playing" />
+
+    <!-- Nom de la chaîne en cours + boutons -->
+    <LinearLayout
+        android:id="@+id/controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#CC000000"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvChannel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/text"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <ImageButton
+            android:id="@+id/btnPrev"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/chip_bg"
+            android:src="@android:drawable/ic_media_previous"
+            android:contentDescription="Chaîne précédente"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/btnNext"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/chip_bg"
+            android:src="@android:drawable/ic_media_next"
+            android:contentDescription="Chaîne suivante"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/btnList"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/chip_bg"
+            android:src="@android:drawable/ic_menu_agenda"
+            android:contentDescription="Liste des chaînes"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/btnResize"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/chip_bg"
+            android:src="@android:drawable/ic_menu_crop"
+            android:contentDescription="Format d'image" />
+    </LinearLayout>
+
+    <!-- Panneau liste des chaînes (caché par défaut) -->
+    <LinearLayout
+        android:id="@+id/listPanel"
+        android:layout_width="320dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:orientation="vertical"
+        android:background="#E6101419"
+        android:padding="10dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Chaînes"
+            android:textColor="@color/accent"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:paddingBottom="8dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/channelList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
 </FrameLayout>

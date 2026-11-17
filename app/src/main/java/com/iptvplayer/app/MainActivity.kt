@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     private var current = Kind.LIVE
     private var categories: List<Category> = emptyList()
     private var allItems: List<Item> = emptyList()
+    private var displayed: List<Item> = emptyList()
     private var selectedCat = ""
 
     private val isXtream by lazy { Prefs.type(this) == Prefs.TYPE_XTREAM }
@@ -147,6 +148,7 @@ class MainActivity : AppCompatActivity() {
         var list = allItems
         if (selectedCat.isNotEmpty()) list = list.filter { it.categoryId == selectedCat }
         if (q.isNotEmpty()) list = list.filter { it.name.lowercase().contains(q) }
+        displayed = list
         adapter.submit(list)
         tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
         if (list.isEmpty()) tvEmpty.text = "Aucun résultat"
@@ -156,7 +158,11 @@ class MainActivity : AppCompatActivity() {
         if (item.kind == Kind.SERIES) {
             openSeries(item)
         } else {
-            play(item.name, item.streamUrl ?: return)
+            // Zapping : toute la catégorie affichée devient la file de lecture
+            val queue = displayed.filter { it.streamUrl != null }
+            Playlist.items = queue
+            Playlist.index = queue.indexOf(item).coerceAtLeast(0)
+            startActivity(Intent(this, PlayerActivity::class.java))
         }
     }
 
@@ -174,15 +180,16 @@ class MainActivity : AppCompatActivity() {
             val labels = eps.map { "S${it.season} · ${it.title}" }.toTypedArray()
             AlertDialog.Builder(this@MainActivity)
                 .setTitle(item.name)
-                .setItems(labels) { _, which -> play(labels[which], eps[which].url) }
+                .setItems(labels) { _, which ->
+                    val queue = eps.map {
+                        Item(it.id, "${item.name} · S${it.season} ${it.title}", item.logo,
+                            Kind.VOD, null, streamUrl = it.url)
+                    }
+                    Playlist.items = queue
+                    Playlist.index = which
+                    startActivity(Intent(this@MainActivity, PlayerActivity::class.java))
+                }
                 .show()
         }
-    }
-
-    private fun play(title: String, url: String) {
-        startActivity(Intent(this, PlayerActivity::class.java).apply {
-            putExtra("url", url)
-            putExtra("title", title)
-        })
     }
 }
