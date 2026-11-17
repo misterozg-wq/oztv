@@ -11,7 +11,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingHorizontal="12dp"
-        android:paddingTop="12dp">
+        android:paddingTop="4dp">
 
         <TextView
             android:layout_width="0dp"
@@ -20,7 +20,7 @@
             android:text="@string/app_name"
             android:textColor="@color/accent"
             android:textStyle="bold"
-            android:textSize="22sp" />
+            android:textSize="20sp" />
 
         <ImageButton
             android:id="@+id/btnSearch"
@@ -56,6 +56,8 @@
             android:text="@string/live"
             android:textColor="@color/text"
             android:textAllCaps="false"
+            android:textSize="14sp"
+            android:minHeight="0dp"
             android:background="@drawable/chip_bg"
             android:layout_marginEnd="8dp" />
 
@@ -67,6 +69,8 @@
             android:text="@string/movies"
             android:textColor="@color/text"
             android:textAllCaps="false"
+            android:textSize="14sp"
+            android:minHeight="0dp"
             android:background="@drawable/chip_bg"
             android:layout_marginEnd="8dp" />
 
@@ -78,6 +82,8 @@
             android:text="@string/series"
             android:textColor="@color/text"
             android:textAllCaps="false"
+            android:textSize="14sp"
+            android:minHeight="0dp"
             android:background="@drawable/chip_bg" />
     </LinearLayout>
 

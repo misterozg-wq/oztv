@@ -134,6 +134,9 @@ class MainActivity : AppCompatActivity() {
             val chip = Button(this).apply {
                 text = cat.name
                 isAllCaps = false
+                textSize = 13f
+                minHeight = 0
+                minimumHeight = 0
                 setBackgroundResource(R.drawable.chip_bg)
                 setTextColor(androidx.core.content.ContextCompat.getColor(this@MainActivity, R.color.text))
                 val lp = LinearLayout.LayoutParams(
