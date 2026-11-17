@@ -1,0 +1,6 @@
+<resources>
+    <string-array name="conn_types">
+        <item>Xtream Codes (serveur + utilisateur + mot de passe)</item>
+        <item>Lien M3U / M3U8</item>
+    </string-array>
+</resources>

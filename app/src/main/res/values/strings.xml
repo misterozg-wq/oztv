@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">OZtv</string>
+    <string name="live">TV en direct</string>
+    <string name="movies">Films</string>
+    <string name="series">Séries</string>
+    <string name="search">Rechercher</string>
+    <string name="connect">Se connecter</string>
+    <string name="logout">Déconnexion</string>
+</resources>
