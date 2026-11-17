@@ -32,6 +32,15 @@
             android:layout_marginEnd="8dp" />
 
         <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/chip_bg"
+            android:src="@android:drawable/ic_menu_manage"
+            android:contentDescription="Code parental"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
             android:id="@+id/btnLogout"
             android:layout_width="44dp"
             android:layout_height="44dp"

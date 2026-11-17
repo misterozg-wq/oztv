@@ -29,7 +29,13 @@ object Prefs {
 
     fun isLoggedIn(c: Context) = type(c) != null
 
-    fun logout(c: Context) = sp(c).edit().clear().apply()
+    fun pin(c: Context) = sp(c).getString("pin", "0000") ?: "0000"
+    fun setPin(c: Context, code: String) = sp(c).edit().putString("pin", code).apply()
+
+    fun logout(c: Context) {
+        val keepPin = pin(c)
+        sp(c).edit().clear().putString("pin", keepPin).apply()
+    }
 
     /** Base Xtream player_api. */
     fun apiBase(c: Context) = "${host(c)}/player_api.php?username=${user(c)}&password=${pass(c)}"

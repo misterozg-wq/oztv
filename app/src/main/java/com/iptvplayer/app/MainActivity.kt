@@ -28,6 +28,9 @@ class MainActivity : AppCompatActivity() {
     private var displayed: List<Item> = emptyList()
     private var selectedCat = ""
 
+    private val adultCatIds = HashSet<String>()
+    private var adultUnlocked = false
+
     private val isXtream by lazy { Prefs.type(this) == Prefs.TYPE_XTREAM }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,7 +82,67 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<ImageButton>(R.id.btnSettings).setOnClickListener { changePinDialog() }
+
         switchTab(Kind.LIVE)
+    }
+
+    private fun isAdult(name: String): Boolean {
+        val n = name.lowercase()
+        return listOf("adult", "adulte", "xxx", "+18", "18+", "porn", "sexe", "sex ", "brazzers")
+            .any { n.contains(it) }
+    }
+
+    /** Demande le code parental ; appelle [onOk] si correct. */
+    private fun askPin(onOk: () -> Unit) {
+        val input = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = "Code (défaut 0000)"
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Contenu adulte — code parental")
+            .setView(input)
+            .setPositiveButton("Valider") { _, _ ->
+                if (input.text.toString() == Prefs.pin(this)) onOk()
+                else Toast.makeText(this, "Code incorrect", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
+    }
+
+    private fun changePinDialog() {
+        val current = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = "Code actuel (défaut 0000)"
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Code parental")
+            .setView(current)
+            .setPositiveButton("Continuer") { _, _ ->
+                if (current.text.toString() != Prefs.pin(this)) {
+                    Toast.makeText(this, "Code actuel incorrect", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val neu = EditText(this).apply {
+                    inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+                    hint = "Nouveau code (4 chiffres)"
+                }
+                AlertDialog.Builder(this)
+                    .setTitle("Nouveau code parental")
+                    .setView(neu)
+                    .setPositiveButton("Enregistrer") { _, _ ->
+                        val v = neu.text.toString()
+                        if (v.length in 4..8) {
+                            Prefs.setPin(this, v)
+                            adultUnlocked = false
+                            Toast.makeText(this, "Code enregistré", Toast.LENGTH_SHORT).show()
+                        } else Toast.makeText(this, "4 à 8 chiffres", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Annuler", null)
+                    .show()
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
     /** Nombre de colonnes calculé d'après la largeur réelle (plus de chaînes en paysage). */
@@ -130,9 +193,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildCategoryChips() {
         catGroup.removeAllViews()
+        adultCatIds.clear()
         categories.forEach { cat ->
+            if (cat.id.isNotEmpty() && isAdult(cat.name)) adultCatIds.add(cat.id)
             val chip = Button(this).apply {
-                text = cat.name
+                text = if (cat.id in adultCatIds) "🔒 ${cat.name}" else cat.name
                 isAllCaps = false
                 textSize = 13f
                 minHeight = 0
@@ -146,8 +211,12 @@ class MainActivity : AppCompatActivity() {
                 lp.marginEnd = 12
                 layoutParams = lp
                 setOnClickListener {
-                    selectedCat = cat.id
-                    applyFilter()
+                    if (cat.id in adultCatIds && !adultUnlocked) {
+                        askPin { adultUnlocked = true; selectedCat = cat.id; applyFilter() }
+                    } else {
+                        selectedCat = cat.id
+                        applyFilter()
+                    }
                 }
             }
             catGroup.addView(chip)
@@ -157,6 +226,8 @@ class MainActivity : AppCompatActivity() {
     private fun applyFilter() {
         val q = search.text.toString().trim().lowercase()
         var list = allItems
+        // Masque le contenu adulte tant que le code n'a pas été saisi
+        if (!adultUnlocked) list = list.filter { it.categoryId !in adultCatIds }
         if (selectedCat.isNotEmpty()) list = list.filter { it.categoryId == selectedCat }
         if (q.isNotEmpty()) list = list.filter { it.name.lowercase().contains(q) }
         displayed = list
