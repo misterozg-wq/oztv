@@ -1,10 +1,14 @@
 package com.iptvplayer.app
 
+import android.annotation.SuppressLint
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.GestureDetector
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +20,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlin.math.abs
 
 class PlayerActivity : AppCompatActivity() {
 
@@ -23,6 +28,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var view: PlayerView
     private lateinit var controls: View
     private lateinit var tvChannel: TextView
+    private lateinit var tvGesture: TextView
     private lateinit var listPanel: View
     private lateinit var list: RecyclerView
 
@@ -33,9 +39,19 @@ class PlayerActivity : AppCompatActivity() {
     )
     private var resizeIdx = 0
 
+    private lateinit var audio: AudioManager
+    private var maxVol = 15
+    private var volLevel = 0f
+    private var brightness = 0.5f
+
+    private var gestureMode = 0 // 0 aucun, 1 luminosité, 2 volume
+    private lateinit var detector: GestureDetector
+
     private val hideHandler = Handler(Looper.getMainLooper())
     private val hideControls = Runnable { controls.visibility = View.GONE }
+    private val hideGesture = Runnable { tvGesture.visibility = View.GONE }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
@@ -43,10 +59,16 @@ class PlayerActivity : AppCompatActivity() {
         view = findViewById(R.id.playerView)
         controls = findViewById(R.id.controls)
         tvChannel = findViewById(R.id.tvChannel)
+        tvGesture = findViewById(R.id.tvGesture)
         listPanel = findViewById(R.id.listPanel)
         list = findViewById(R.id.channelList)
 
         if (Playlist.items.isEmpty()) { finish(); return }
+
+        audio = getSystemService(AUDIO_SERVICE) as AudioManager
+        maxVol = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        volLevel = audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
+        brightness = window.attributes.screenBrightness.let { if (it < 0f) 0.5f else it }
 
         val exo = ExoPlayer.Builder(this).build()
         player = exo
@@ -66,7 +88,12 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.btnList).setOnClickListener { toggleList() }
         findViewById<ImageButton>(R.id.btnResize).setOnClickListener { cycleResize() }
 
-        view.setOnClickListener { if (listPanel.visibility == View.VISIBLE) hideList() else showControls() }
+        detector = GestureDetector(this, GestureListener())
+        view.setOnTouchListener { _, ev ->
+            detector.onTouchEvent(ev)
+            if (ev.action == MotionEvent.ACTION_UP || ev.action == MotionEvent.ACTION_CANCEL) gestureMode = 0
+            true
+        }
 
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = ChannelListAdapter(Playlist.items) { pos ->
@@ -76,6 +103,60 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         playCurrent()
+    }
+
+    private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent): Boolean { gestureMode = 0; return true }
+
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            if (listPanel.visibility == View.VISIBLE) hideList() else showControls()
+            return true
+        }
+
+        override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dX: Float, dY: Float): Boolean {
+            if (e1 == null || listPanel.visibility == View.VISIBLE) return false
+            val totX = e2.x - e1.x
+            val totY = e2.y - e1.y
+            if (gestureMode == 0) {
+                if (abs(totY) > abs(totX) && abs(totY) > 40) {
+                    gestureMode = if (e1.x < view.width / 2f) 1 else 2
+                } else return false
+            }
+            val frac = dY / view.height * 1.5f  // dY>0 = doigt vers le haut
+            when (gestureMode) {
+                1 -> setBrightness(brightness + frac)
+                2 -> setVolume(volLevel + frac * maxVol)
+            }
+            return true
+        }
+
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
+            if (e1 == null || gestureMode != 0) return false
+            if (abs(vX) > abs(vY) && abs(vX) > 800) {
+                if (vX < 0) next() else prev()
+                return true
+            }
+            return false
+        }
+    }
+
+    private fun setBrightness(v: Float) {
+        brightness = v.coerceIn(0.02f, 1f)
+        window.attributes = window.attributes.apply { screenBrightness = brightness }
+        showGesture("☀ ${(brightness * 100).toInt()} %")
+    }
+
+    private fun setVolume(v: Float) {
+        volLevel = v.coerceIn(0f, maxVol.toFloat())
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, volLevel.toInt(), 0)
+        showGesture("🔊 ${(volLevel / maxVol * 100).toInt()} %")
+    }
+
+    private fun showGesture(text: String) {
+        tvGesture.text = text
+        tvGesture.visibility = View.VISIBLE
+        hideHandler.removeCallbacks(hideGesture)
+        hideHandler.postDelayed(hideGesture, 800)
     }
 
     private fun playCurrent() {
@@ -97,7 +178,7 @@ class PlayerActivity : AppCompatActivity() {
         resizeIdx = (resizeIdx + 1) % resizeModes.size
         view.resizeMode = resizeModes[resizeIdx]
         val label = when (resizeIdx) { 0 -> "Ajusté"; 1 -> "Étiré"; else -> "Zoom" }
-        Toast.makeText(this, "Image : $label", Toast.LENGTH_SHORT).show()
+        showGesture("Image : $label")
         showControls()
     }
 
@@ -123,7 +204,6 @@ class PlayerActivity : AppCompatActivity() {
         showControls()
     }
 
-    /** Télécommande / clavier : haut = précédent, bas = suivant, OK = liste. */
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (listPanel.visibility == View.VISIBLE) {
             if (keyCode == KeyEvent.KEYCODE_BACK) { hideList(); return true }
